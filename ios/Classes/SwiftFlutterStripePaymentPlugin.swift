@@ -5,7 +5,7 @@ import Stripe
 protocol IDelegate {
     func setStripeSettings(arguments: NSDictionary?, result: @escaping FlutterResult)
     func handleAddPaymentOptionButtonTapped(result: @escaping FlutterResult)
-    func confirmPaymentIntent(clientSecret: String, amount: Double, isApplePay: Bool, result: @escaping FlutterResult)
+    func confirmPaymentIntent(clientSecret: String, paymentMethodId: String, amount: Double, isApplePay: Bool, result: @escaping FlutterResult)
     func setupPaymentIntent(clientSecret: String, paymentMethodId: String, isApplePay: Bool, result: @escaping FlutterResult)
 }
 
@@ -40,9 +40,10 @@ public class SwiftFlutterStripePaymentPlugin: NSObject, FlutterPlugin {
     else if(call.method == "confirmPaymentIntent")//immediate payments
     {
         guard let clientSecret = arguments?["clientSecret"] as? String else {return}
+        guard let paymentMethodId = arguments?["paymentMethodId"] as? String else {return}
         guard let amount = arguments?["amount"] as? Double else {return}
         let isApplePay = arguments?["isApplePay"] as? Bool
-        delegate.confirmPaymentIntent(clientSecret: clientSecret, amount: amount, isApplePay: isApplePay ?? false, result: result)
+        delegate.confirmPaymentIntent(clientSecret: clientSecret, paymentMethodId: paymentMethodId, amount: amount, isApplePay: isApplePay ?? false, result: result)
     }
     else if(call.method == "setupPaymentIntent")//future payments
     {
@@ -82,11 +83,13 @@ public class StripePaymentDelegate : NSObject, IDelegate, STPAddCardViewControll
         }
     }
     
-    func confirmPaymentIntent(clientSecret: String, amount: Double, isApplePay: Bool, result: @escaping FlutterResult)
+    func confirmPaymentIntent(clientSecret: String, paymentMethodId: String amount: Double, isApplePay: Bool, result: @escaping FlutterResult)
     {
         flutterResult = result
         isPresentingApplePay = isApplePay
         let paymentIntentParams = STPPaymentIntentParams(clientSecret: clientSecret)
+        paymentIntentParams.paymentMethodId = paymentMethodId
+        
         let paymentManager = STPPaymentHandler.shared()
         paymentManager.confirmPayment(withParams: paymentIntentParams, authenticationContext: self) { (status, paymentIntent, error) in
             
